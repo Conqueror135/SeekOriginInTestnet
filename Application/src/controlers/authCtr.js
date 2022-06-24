@@ -1,5 +1,6 @@
 const md5 = require("md5");
 const { getByUsername, save } = require("../models/userModel");
+const {AddUser, getUserById} = require("../fabric/user/User");
 const jwtHelper = require("../helpers/jwt.helper");
 
 let tokenList = {};
@@ -52,11 +53,19 @@ const register = async (req, res) => {
   const body = req.body;
   const username = body.username;
   const password = body.password;
-  const user = await getByUsername(username);
-  if (!user) {
+  const phone = body.phone;
+  const email = body.email;
+  const address = body.address;
+  const orgId = body.orgId;
+  const status = 1;
+  const avatarUrl ="";
+  const id = await md5(username+password);
+ // const user = await getUserById(username);
+ // console.log(user);
+  if (true) {
     const encodePassword = await md5(password);
     console.log(encodePassword);
-    await save(username, encodePassword, role);
+    await AddUser(id, username, password, phone, email, address, avatarUrl, orgId, role, status);
     return res.status(201).json({
       message: "Sig up success!",
     });
