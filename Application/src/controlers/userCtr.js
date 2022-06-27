@@ -1,9 +1,12 @@
 const {
-  getAll,
+  AddUser,
+  getUserById,
+  getAllUsers,
   getByUsername,
-  updateUser,
-  deleteByID,
-} = require("../models/userModel");
+  revokeUserById,
+  changePasswordUserById,
+  changeUserById,
+} = require("../models/user/User");
 
 const modifyPermissions = async (req, res) => {
   const body = req.body;
@@ -20,15 +23,15 @@ const modifyPermissions = async (req, res) => {
   }
 };
 const getUsers = async (req, res) => {
-  const users = await getAll();
+  const users = await getAllUsers();
   return res.status(200).json({ users });
 };
-const deleteUser = async (req, res) => {
+const revokeUser = async (req, res) => {
   const { _id } = req.params;
   if (_id) {
-    await deleteByID(_id);
+    await revokeUserById(_id);
     return res.status(201).send({
-      message: "Deleted!",
+      message: `User id ${_id} is revoked!`,
     });
   } else {
     return res.status(403).send({
@@ -39,5 +42,5 @@ const deleteUser = async (req, res) => {
 module.exports = {
   modifyPermissions: modifyPermissions,
   getUsers: getUsers,
-  deleteUser: deleteUser,
+  revokeUser: revokeUser,
 };

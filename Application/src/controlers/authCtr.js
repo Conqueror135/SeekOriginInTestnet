@@ -1,6 +1,9 @@
 const md5 = require("md5");
-const { getByUsername, save } = require("../models/userModel");
-const {AddUser, getUserById} = require("../fabric/user/User");
+const { AddUser, getUserById } = require("../models/user/User");
+const { addNewPKI, getPkiById } = require("../models/pki/Pki");
+const { createIdentity } = require("../models/registerUser");
+const CryptoJS = require("crypto-js");
+
 const jwtHelper = require("../helpers/jwt.helper");
 
 let tokenList = {};
@@ -13,14 +16,18 @@ const refreshTokenSecret =
   process.env.ACCESS_TOKEN_SECRET || "Thang_Dep_Trai_Khong_Ai_Sanh_Bang_:))";
 
 let login = async (req, res) => {
+  console.log(req.body);
   try {
     const body = req.body;
-    const username = body.username;
-    const password = body.password;
-    const encodePassword = md5(password);
-    const user = await getByUsername(username);
+    const Username = body.Username;
+    const Password = body.Password;
+    const encodePassword = md5(Password);
+    const Id = await md5(Username + Password);
+
+    const rawUser = await getUserById(Id);
+    const user = JSON.parse(rawUser);
     if (user) {
-      if (user.password === encodePassword) {
+      if (user.Password === encodePassword) {
         const accessToken = await jwtHelper.generateToken(
           user,
           accessTokenSecret,
@@ -49,29 +56,68 @@ let login = async (req, res) => {
 };
 
 const register = async (req, res) => {
-  const role = 0;
   const body = req.body;
-  const username = body.username;
-  const password = body.password;
-  const phone = body.phone;
-  const email = body.email;
-  const address = body.address;
-  const orgId = body.orgId;
-  const status = 1;
-  const avatarUrl ="";
-  const id = await md5(username+password);
- // const user = await getUserById(username);
- // console.log(user);
-  if (true) {
-    const encodePassword = await md5(password);
-    console.log(encodePassword);
-    await AddUser(id, username, password, phone, email, address, avatarUrl, orgId, role, status);
-    return res.status(201).json({
-      message: "Sig up success!",
-    });
-  } else {
-    return res.status(401).json({
-      message: "The username already exists!",
+  const FullName = body.FullName;
+  const Username = body.Username;
+  const Password = body.Password;
+  const AvatarUrl = "";
+  const Phone = body.Phone;
+  const Email = body.Email;
+  const Address = body.Address;
+  const OrgId = "Org1MSP";
+  const Role = 0;
+  const Status = 1;
+  try {
+    const Id = await md5(Username + Password);
+    const user = await getUserById(Id);
+    console.log(user.toString());
+    if (!user.toString()) {
+      const encodePassword = await md5(Password);
+      console.log(encodePassword);
+      await AddUser(
+        Id,
+        FullName,
+        Username,
+        encodePassword,
+        Phone,
+        Email,
+        Address,
+        AvatarUrl,
+        OrgId,
+        Role,
+        Status
+      );
+      const identity = await createIdentity(Id, "producer");
+      const identityUser = JSON.parse(identity);
+      const publicKey = identityUser.credentials.certificate.toString();
+      const privateKey = identityUser.credentials.privateKey.toString();
+      const PrivateKeyEncode = CryptoJS.AES.encrypt(
+        privateKey,
+        Password
+      ).toString();
+      const IdPki = await md5(Username + Password + "pki");
+      await addNewPKI(IdPki, Id, publicKey, PrivateKeyEncode, 0);
+
+      return res.status(201).json({
+        message: "Sig up success!",
+        credentials: {
+          publicKey: publicKey,
+          privateKey: privateKey,
+          encodePrivateKey: PrivateKeyEncode,
+          status: 0,
+        },
+        mspId: "Org1MSP",
+        type: "X.509",
+      });
+    } else {
+      return res.status(401).json({
+        message: "The username already exists!",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Sig up failed!",
     });
   }
 };

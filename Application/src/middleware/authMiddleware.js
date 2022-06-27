@@ -8,6 +8,7 @@ let isAuth = async (req, res, next) => {
     req.query.token ||
     req.headers.authorization ||
     req.headers["x-access-token"];
+
   if (tokenFromClient) {
     try {
       const decoded = await jwtHelper.verifyToken(
@@ -42,7 +43,7 @@ let isAdmin = async (req, res, next) => {
         accessTokenSecret
       );
       req.jwtDecoded = decoded;
-      if (decoded.data.role === 1) {
+      if (decoded.data.role === 0) {
         next();
       } else {
         return res.status(401).json({
